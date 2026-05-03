@@ -1,0 +1,58 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# FlowVest AI Backend — Production Dependencies (v2.0)
+# ═══════════════════════════════════════════════════════════════════════════════
+# Install: pip install -r requirements.txt
+# Pin versions for reproducibility. Update quarterly after testing.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ── Web Framework ──────────────────────────────────────────────────────────────
+fastapi==0.109.0
+uvicorn[standard]==0.27.0        # ASGI server with HTTP/2, WebSocket support
+python-multipart==0.0.6          # Form data parsing (required by FastAPI)
+
+# ── Database ───────────────────────────────────────────────────────────────────
+sqlalchemy==2.0.25               # ORM + async support
+psycopg2-binary==2.9.9           # PostgreSQL adapter (binary wheels)
+alembic==1.13.1                  # Schema migrations (run: alembic upgrade head)
+
+# ── Data Validation & Settings ─────────────────────────────────────────────────
+pydantic==2.5.3                  # Runtime type checking
+pydantic-settings==2.1.0         # Env-var based configuration
+email-validator==2.1.0           # Email validation for Pydantic
+
+# ── HTTP Client ────────────────────────────────────────────────────────────────
+httpx==0.26.0                    # Async HTTP client (OpenRouter, market APIs)
+
+# ── Celery + Redis (Job Queue) ─────────────────────────────────────────────────
+celery==5.3.6                    # Distributed task queue
+redis==5.0.1                     # Redis client (broker + cache)
+kombu==5.3.4                     # Celery messaging library (pinned for compat)
+flower==2.0.1                    # Celery monitoring UI (http://localhost:5555)
+
+# ── Firebase Authentication ────────────────────────────────────────────────────
+firebase-admin==6.4.0            # JWT verification, user management
+# Note: Requires GOOGLE_APPLICATION_CREDENTIALS or Application Default Credentials
+
+# ── Rate Limiting ──────────────────────────────────────────────────────────────
+slowapi==0.1.9                   # Rate limiter for FastAPI
+limits==3.8.0                    # Rate limit expressions (e.g., "10/minute")
+
+# ── Market Data Providers ──────────────────────────────────────────────────────
+yfinance==0.2.36                 # Tertiary fallback provider
+# Alpha Vantage & FMP use raw httpx calls — no extra packages needed
+
+# ── Observability & Logging ────────────────────────────────────────────────────
+structlog==24.1.0                # Structured JSON logging
+python-json-logger==2.0.7        # JSON log formatter
+
+# ── Development & Testing (optional, install with: pip install -r requirements-dev.txt)
+# pytest==7.4.3
+# pytest-asyncio==0.23.2
+# pytest-cov==4.1.0
+# httpx==0.26.0                  # Already installed for prod
+# ruff==0.1.6                    # Fast Python linter
+# mypy==1.7.1                    # Static type checker
+
+# ── Security ───────────────────────────────────────────────────────────────────
+# pip-audit==2.6.1               # Run: pip-audit to check for vulnerabilities
+# bandit==1.7.5                  # Security linter for Python code

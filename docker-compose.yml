@@ -1,0 +1,146 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# FlowVest AI — Docker Compose (Production-Ready v2.0)
+# ═══════════════════════════════════════════════════════════════════════════════
+# Usage:
+#   docker-compose up --build          # Start all services
+#   docker-compose up backend          # Start only backend
+#   docker-compose logs -f celery      # Follow Celery worker logs
+#   docker-compose down -v             # Stop and remove volumes (CAUTION: deletes data)
+#
+# Services:
+#   - PostgreSQL 15 (port 5432)
+#   - Redis 7 (port 6379)
+#   - FastAPI Backend (port 8000)
+#   - Celery Worker (background task processor)
+#   - Flower (Celery monitoring UI, port 5555)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+version: "3.9"
+
+services:
+  # ── PostgreSQL Database ──────────────────────────────────────────────────────
+  postgres:
+    image: postgres:15-alpine
+    container_name: flowvest-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: flowvest
+      POSTGRES_USER: flowvest
+      POSTGRES_PASSWORD: flowvest123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U flowvest -d flowvest"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - flowvest-network
+
+  # ── Redis (Message Broker + Cache) ───────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: flowvest-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - flowvest-network
+
+  # ── FastAPI Backend ──────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: flowvest-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://flowvest:flowvest123@postgres:5432/flowvest
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      CORS_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
+      APP_URL: http://localhost:3000
+      APP_NAME: FlowVest AI
+    ports:
+      - "8000:8000"
+    command: uvicorn backend.main:app --host 0.0.0.0 --port 8000 --workers 2
+    volumes:
+      - ./backend:/app/backend
+      - ./google-service-account.json:/app/service-account.json:ro  # Optional: Firebase
+    networks:
+      - flowvest-network
+
+  # ── Celery Worker (Background Task Processor) ────────────────────────────────
+  celery-worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: flowvest-celery-worker
+    restart: unless-stopped
+    depends_on:
+      - redis
+      - postgres
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://flowvest:flowvest123@postgres:5432/flowvest
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+    command: celery -A backend.tasks.celery_app worker --loglevel=info --concurrency=4 --pool=solo
+    volumes:
+      - ./backend:/app/backend
+      - ./google-service-account.json:/app/service-account.json:ro  # Optional: Firebase
+    networks:
+      - flowvest-network
+
+  # ── Flower (Celery Monitoring UI) ────────────────────────────────────────────
+  flower:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: flowvest-flower
+    restart: unless-stopped
+    depends_on:
+      - redis
+      - celery-worker
+    env_file:
+      - .env
+    environment:
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+    ports:
+      - "5555:5555"
+    command: celery -A backend.tasks.celery_app flower --port=5555 --basic_auth=admin:flower123
+    networks:
+      - flowvest-network
+
+networks:
+  flowvest-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local

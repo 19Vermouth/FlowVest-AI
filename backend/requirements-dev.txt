@@ -1,0 +1,38 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# FlowVest AI Backend — Development Dependencies
+# ═══════════════════════════════════════════════════════════════════════════════
+# Install: pip install -r requirements-dev.txt
+# Includes all production deps + testing, linting, and debugging tools.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Include production dependencies
+-r requirements.txt
+
+# ── Testing ────────────────────────────────────────────────────────────────────
+pytest==7.4.3                  # Test framework
+pytest-asyncio==0.23.2         # Async test support
+pytest-cov==4.1.0              # Coverage reporting
+pytest-mock==3.12.0            # Mocking utilities
+factory-boy==3.3.0             # Test data factories
+
+# ── Linting & Type Checking ────────────────────────────────────────────────────
+ruff==0.1.6                    # Fast Python linter (10-100x faster than flake8)
+mypy==1.7.1                    # Static type checker
+types-redis==4.6.0.20240106    # Type stubs for Redis
+types-requests==2.31.0.20240106 # Type stubs for requests
+
+# ── Debugging ──────────────────────────────────────────────────────────────────
+ipdb==0.13.13                  # IPython debugger
+pdbpp==0.10.3                  # Enhanced pdb
+
+# ── Documentation ──────────────────────────────────────────────────────────────
+mkdocs==1.5.3                  # Static site generator for docs
+mkdocs-material==9.5.2         # Material theme for MkDocs
+
+# ── Security Auditing ──────────────────────────────────────────────────────────
+pip-audit==2.6.1               # Scan for vulnerable dependencies
+bandit==1.7.5                  # Security-focused static analysis
+
+# ── Development Utilities ──────────────────────────────────────────────────────
+pre-commit==3.6.0              # Git pre-commit hooks
+dotenv-linter==0.5.0           # Lint .env files
